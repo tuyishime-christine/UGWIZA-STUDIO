@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel – UGWIZA STUDIO</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="container py-5">
+    <h1 class="text-center">Admin Panel</h1>
+
+    <!-- Login Form -->
+    <div id="loginForm" class="row justify-content-center">
+      <div class="col-md-4">
+        <h3>Login</h3>
+        <input type="text" id="username" class="form-control mb-2" placeholder="Username">
+        <input type="password" id="password" class="form-control mb-2" placeholder="Password">
+        <button onclick="login()" class="btn btn-primary w-100">Login</button>
+        <div id="loginError" class="text-danger mt-2"></div>
+      </div>
+    </div>
+
+    <!-- Admin Content (hidden until login) -->
+    <div id="adminContent" style="display:none;">
+      <div class="row">
+        <div class="col-md-6">
+          <h3>Upload New File</h3>
+          <form id="uploadForm" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label>Title (optional)</label>
+              <input type="text" id="title" class="form-control">
+            </div>
+            <div class="mb-3">
+              <label>Category</label>
+              <input type="text" id="category" class="form-control" placeholder="e.g., Wedding, Event">
+            </div>
+            <div class="mb-3">
+              <label>Type</label>
+              <select id="type" class="form-select">
+                <option value="photo">Photo</option>
+                <option value="video">Video</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label>Select File</label>
+              <input type="file" id="fileInput" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-success">Upload</button>
+          </form>
+          <div id="uploadStatus" class="mt-2"></div>
+        </div>
+
+        <div class="col-md-6">
+          <h3>Existing Gallery Items</h3>
+          <div id="galleryList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API_BASE = 'http://localhost:5000/api';
+    let token = localStorage.getItem('adminToken') || '';
+
+    async function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      try {
+        const res = await fetch(`${API_BASE}/admin/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          token = 'admin-secret'; // Hardcoded token for simplicity
+          localStorage.setItem('adminToken', token);
+          document.getElementById('loginForm').style.display = 'none';
+          document.getElementById('adminContent').style.display = 'block';
+          loadGallery();
+        } else {
+          document.getElementById('loginError').textContent = data.error || 'Login failed';
+        }
+      } catch (err) {
+        document.getElementById('loginError').textContent = 'Network error';
+      }
+    }
+
+    // Check if already logged in
+    if (token === 'admin-secret') {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('adminContent').style.display = 'block';
+      loadGallery();
+    }
+
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append('title', document.getElementById('title').value);
+      formData.append('category', document.getElementById('category').value);
+      formData.append('type', document.getElementById('type').value);
+      formData.append('file', document.getElementById('fileInput').files[0]);
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/upload`, {
+          method: 'POST',
+          headers: { 'Authorization': token },
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('uploadStatus').innerHTML = '<div class="alert alert-success">Upload successful!</div>';
+          loadGallery();
+          document.getElementById('uploadForm').reset();
+        } else {
+          document.getElementById('uploadStatus').innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+        }
+      } catch (err) {
+        document.getElementById('uploadStatus').innerHTML = '<div class="alert alert-danger">Network error</div>';
+      }
+    });
+
+    async function loadGallery() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/gallery`, {
+          headers: { 'Authorization': token }
+        });
+        const items = await res.json();
+        const list = document.getElementById('galleryList');
+        if (items.length === 0) {
+          list.innerHTML = '<p class="text-muted">No items uploaded yet.</p>';
+          return;
+        }
+        let html = '<ul class="list-group">';
+        items.forEach(item => {
+          const fileUrl = `http://localhost:5000${item.file_path}`;
+          html += `
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>${item.title || 'Untitled'}</strong>
+                <span class="badge bg-secondary">${item.type}</span>
+                <span class="text-muted ms-2">${item.category || 'Uncategorized'}</span>
+                <br><small class="text-muted">${item.file_path}</small>
+              </div>
+              <button class="btn btn-danger btn-sm" onclick="deleteItem(${item.id})">Delete</button>
+            </li>
+          `;
+        });
+        html += '</ul>';
+        list.innerHTML = html;
+      } catch (err) {
+        list.innerHTML = '<div class="alert alert-danger">Failed to load gallery</div>';
+      }
+    }
+
+    async function deleteItem(id) {
+      if (!confirm('Delete this item?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/admin/gallery/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': token }
+        });
+        if (res.ok) {
+          loadGallery();
+        } else {
+          alert('Delete failed');
+        }
+      } catch (err) {
+        alert('Network error');
+      }
+    }
+  </script>
+</body>
+</html>

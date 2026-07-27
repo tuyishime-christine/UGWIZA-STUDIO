@@ -1,0 +1,32 @@
+
+CREATE DATABASE IF NOT EXISTS ugwiza_studio;
+USE ugwiza_studio;
+
+CREATE TABLE contacts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(20),
+  subject VARCHAR(255),
+  message TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE gallery (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  type ENUM('photo', 'video') DEFAULT 'photo',
+  file_path VARCHAR(255) NOT NULL,
+  category VARCHAR(100),
+  featured BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE services (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  description TEXT,
+  icon VARCHAR(50),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
