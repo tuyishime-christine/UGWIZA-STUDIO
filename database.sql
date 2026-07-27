@@ -1,6 +1,4 @@
 
-CREATE DATABASE IF NOT EXISTS ugwiza_studio;
-USE ugwiza_studio;
 
 CREATE TABLE contacts (
   id INT AUTO_INCREMENT PRIMARY KEY,

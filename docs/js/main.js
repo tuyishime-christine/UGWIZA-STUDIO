@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Only try to load navbar if the placeholder exists
   const navbarPlaceholder = document.getElementById('navbar-placeholder');
   if (navbarPlaceholder) {
     fetch('components/navbar.html')
@@ -8,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(err => console.error('Failed to load navbar:', err));
   }
 
-  // Only try to load footer if the placeholder exists
   const footerPlaceholder = document.getElementById('footer-placeholder');
   if (footerPlaceholder) {
     fetch('components/footer.html')
