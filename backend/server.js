@@ -9,9 +9,11 @@ const galleryRoutes = require('./routes/galleryRoutes');
 dotenv.config();
 const app = express();
 
+// ---- File upload configuration ----
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadPath = path.join(__dirname, '../frontend/assets/uploads');
+    // ✅ Changed from 'frontend' to 'docs'
+    const uploadPath = path.join(__dirname, '../docs/assets/uploads');
     cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
@@ -30,16 +32,21 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({ storage, fileFilter });
 
+// ---- Middleware ----
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, '../frontend/assets/uploads')));
+// ✅ Changed static file serving path to 'docs'
+app.use('/uploads', express.static(path.join(__dirname, '../docs/assets/uploads')));
 
+// ---- Routes ----
 app.use('/api/contact', contactRoutes);
 app.use('/api/gallery', galleryRoutes);
 
+// ---- Admin Routes ----
 const adminRoutes = require('./routes/adminRoutes');
 app.use('/api/admin', adminRoutes(upload));
 
+// ---- Health check ----
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });
 });
