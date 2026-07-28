@@ -28,10 +28,17 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    // Get original name without extension to avoid double extension
-    const originalName = file.originalname.split('.').slice(0, -1).join('.');
+    
+    // ✅ NEW: Get the name WITHOUT any extension (remove everything after the last dot)
+    const nameWithoutExt = file.originalname.replace(/\.[^/.]+$/, '');
+    
+    // Get the last extension (e.g., 'jpg', 'JPG', 'mp4')
     const extension = file.originalname.split('.').pop();
-    const cleanName = originalName.replace(/[^a-zA-Z0-9\-_ ]/g, '_');
+    
+    // Sanitize: keep only safe characters
+    const cleanName = nameWithoutExt.replace(/[^a-zA-Z0-9\-_ ]/g, '_');
+    
+    // Final filename: uniqueSuffix-cleanName.extension (single extension)
     cb(null, uniqueSuffix + '-' + cleanName + '.' + extension);
   }
 });
@@ -61,9 +68,9 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 
-// ✅ Serve static files with extension fallbacks
+// ✅ Serve static files with extension fallbacks (added uppercase versions)
 app.use('/uploads', express.static(UPLOAD_DIR, {
-  extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'mkv']
+  extensions: ['jpg', 'JPG', 'jpeg', 'JPEG', 'png', 'PNG', 'gif', 'GIF', 'webp', 'mp4', 'MP4', 'mov', 'avi', 'mkv']
 }));
 
 // ---- Routes ----
