@@ -4,7 +4,6 @@ const dotenv = require('dotenv');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const helmet = require('helmet'); // optional – install if needed
 const contactRoutes = require('./routes/contactRoutes');
 const galleryRoutes = require('./routes/galleryRoutes');
 const adminRoutes = require('./routes/adminRoutes');
@@ -29,10 +28,10 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    // Get the original file name without extension
+    // Get original name without extension to avoid double extension
     const originalName = file.originalname.split('.').slice(0, -1).join('.');
     const extension = file.originalname.split('.').pop();
-    // Sanitize the name to avoid special characters and path traversal
+    // Sanitize the base name
     const cleanName = originalName.replace(/[^a-zA-Z0-9\-_ ]/g, '_');
     cb(null, uniqueSuffix + '-' + cleanName + '.' + extension);
   }
@@ -50,15 +49,12 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit
+    fileSize: 50 * 1024 * 1024, // 50MB
   }
 });
 
 // ---- Middleware ----
-// Security headers (optional – remove if helmet not installed)
-app.use(helmet());
-
-// CORS – configure with env variable for production
+// CORS configuration
 const corsOptions = {
   origin: process.env.CORS_ORIGIN || '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -66,7 +62,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// JSON body parser with size limit
+// JSON body parser
 app.use(express.json({ limit: '50mb' }));
 
 // Serve static files from uploads
@@ -109,7 +105,7 @@ app.use((req, res, next) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  // Multer-specific errors
+  // Multer errors
   if (err instanceof multer.MulterError) {
     if (err.code === 'FILE_TOO_LARGE') {
       return res.status(413).json({ error: 'File too large' });
@@ -117,7 +113,6 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ error: err.message });
   }
 
-  // Custom errors
   const status = err.status || 500;
   const message = err.message || 'Internal Server Error';
   console.error(`[${new Date().toISOString()}] ${status} - ${message}`, err.stack);
