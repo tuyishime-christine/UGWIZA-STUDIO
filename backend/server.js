@@ -14,7 +14,44 @@ const app = express();
 // ---- Configuration ----
 const PORT = process.env.PORT || 5000;
 const UPLOAD_DIR = path.resolve(__dirname, '../docs/assets/uploads');
+// ---- ONE-TIME FILE RENAME SCRIPT ----
+// This will run once on startup. Remove after successful deployment.
+const renameFiles = () => {
+  console.log('🔄 Renaming files to match database...');
+  const files = fs.readdirSync(UPLOAD_DIR);
+  let renamedCount = 0;
 
+  files.forEach((file) => {
+    let newFile = file;
+
+    if (file.endsWith('_JPG.jpg')) {
+      newFile = file.replace(/_JPG\.jpg$/, '.JPG');
+    } else if (file.endsWith('_jpg.jpg')) {
+      newFile = file.replace(/_jpg\.jpg$/, '.JPG');
+    } else if (file.endsWith('_JPG')) {
+      newFile = file.replace(/_JPG$/, '.JPG');
+    } else if (file.endsWith('_jpg')) {
+      newFile = file.replace(/_jpg$/, '.JPG');
+    }
+
+    if (newFile !== file) {
+      const oldPath = path.join(UPLOAD_DIR, file);
+      const newPath = path.join(UPLOAD_DIR, newFile);
+      if (!fs.existsSync(newPath)) {
+        fs.renameSync(oldPath, newPath);
+        console.log(`✅ Renamed: ${file} → ${newFile}`);
+        renamedCount++;
+      } else {
+        console.log(`⚠️ Target already exists: ${newFile} – skipping ${file}`);
+      }
+    }
+  });
+
+  console.log(`✅ Done – renamed ${renamedCount} file(s).`);
+};
+
+renameFiles();
+// ---- END SCRIPT ----
 // Ensure upload directory exists
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
