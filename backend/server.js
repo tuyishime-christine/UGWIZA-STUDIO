@@ -3,7 +3,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs'); // <-- fs required here FIRST
+const fs = require('fs');
 const contactRoutes = require('./routes/contactRoutes');
 const galleryRoutes = require('./routes/galleryRoutes');
 const adminRoutes = require('./routes/adminRoutes');
@@ -21,64 +21,6 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   console.log(`Created upload directory: ${UPLOAD_DIR}`);
 }
 
-// ---- ONE-TIME FILE RENAME & DEBUG SCRIPT ----
-// This will run once on startup. Remove after successful deployment.
-const renameFiles = () => {
-  console.log('📁 Current files in upload directory:');
-  const files = fs.readdirSync(UPLOAD_DIR);
-  files.forEach(f => console.log('  -', f));
-
-  let renamedCount = 0;
-  files.forEach((file) => {
-    let newFile = file;
-
-    // 1. Fix image files: _JPG.jpg → .JPG, _jpg.jpg → .JPG
-    if (file.endsWith('_JPG.jpg')) {
-      newFile = file.replace(/_JPG\.jpg$/, '.JPG');
-    } else if (file.endsWith('_jpg.jpg')) {
-      newFile = file.replace(/_jpg\.jpg$/, '.JPG');
-    } else if (file.endsWith('_JPG')) {
-      newFile = file.replace(/_JPG$/, '.JPG');
-    } else if (file.endsWith('_jpg')) {
-      newFile = file.replace(/_jpg$/, '.JPG');
-    }
-
-    // 2. Fix video files: _mp4.mp4 → .mp4, _mp4 → .mp4
-    if (file.endsWith('_mp4.mp4')) {
-      newFile = file.replace(/_mp4\.mp4$/, '.mp4');
-    } else if (file.endsWith('_mp4')) {
-      newFile = file.replace(/_mp4$/, '.mp4');
-    }
-
-    // 3. If nothing matched, clean underscores/spaces from the name part
-    if (newFile === file) {
-      const ext = file.split('.').pop();
-      const name = file.slice(0, file.lastIndexOf('.'));
-      const cleanName = name.replace(/[_ ]/g, '');
-      if (cleanName !== name) {
-        newFile = cleanName + '.' + ext;
-      }
-    }
-
-    if (newFile !== file) {
-      const oldPath = path.join(UPLOAD_DIR, file);
-      const newPath = path.join(UPLOAD_DIR, newFile);
-      if (!fs.existsSync(newPath)) {
-        fs.renameSync(oldPath, newPath);
-        console.log(`✅ Renamed: ${file} → ${newFile}`);
-        renamedCount++;
-      } else {
-        console.log(`⚠️ Target already exists: ${newFile} – skipping ${file}`);
-      }
-    }
-  });
-
-  console.log(`✅ Done – renamed ${renamedCount} file(s).`);
-};
-
-renameFiles();
-// ---- END SCRIPT ----
-
 // ---- Multer file upload configuration ----
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -86,7 +28,6 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    // Get name without any extension, then sanitize
     const nameWithoutExt = file.originalname.replace(/\.[^/.]+$/, '');
     const extension = file.originalname.split('.').pop();
     const cleanName = nameWithoutExt.replace(/[^a-zA-Z0-9\-_ ]/g, '_');
