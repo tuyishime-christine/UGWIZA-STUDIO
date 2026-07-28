@@ -20,6 +20,14 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
   console.log(`Created upload directory: ${UPLOAD_DIR}`);
 }
+// DEBUG: List all files in uploads directory
+const files = fs.readdirSync(UPLOAD_DIR);
+console.log('📂 Files in uploads directory:');
+files.forEach(f => console.log('  -', f));
+
+
+
+
 
 // ---- Multer file upload configuration ----
 const storage = multer.diskStorage({
