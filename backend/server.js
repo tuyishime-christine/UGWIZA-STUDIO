@@ -31,7 +31,6 @@ const storage = multer.diskStorage({
     // Get original name without extension to avoid double extension
     const originalName = file.originalname.split('.').slice(0, -1).join('.');
     const extension = file.originalname.split('.').pop();
-    // Sanitize the base name
     const cleanName = originalName.replace(/[^a-zA-Z0-9\-_ ]/g, '_');
     cb(null, uniqueSuffix + '-' + cleanName + '.' + extension);
   }
@@ -49,31 +48,29 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB
+    fileSize: 50 * 1024 * 1024,
   }
 });
 
 // ---- Middleware ----
-// CORS configuration
 const corsOptions = {
   origin: process.env.CORS_ORIGIN || '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 app.use(cors(corsOptions));
-
-// JSON body parser
 app.use(express.json({ limit: '50mb' }));
 
-// Serve static files from uploads
-app.use('/uploads', express.static(UPLOAD_DIR));
+// ✅ Serve static files with extension fallbacks
+app.use('/uploads', express.static(UPLOAD_DIR, {
+  extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'mkv']
+}));
 
 // ---- Routes ----
 app.use('/api/contact', contactRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api/admin', adminRoutes(upload));
 
-// Health check
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -82,7 +79,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Welcome route
 app.get('/', (req, res) => {
   res.json({
     message: 'API server is running',
@@ -96,16 +92,13 @@ app.get('/', (req, res) => {
 });
 
 // ---- Error Handling ----
-// 404 handler
 app.use((req, res, next) => {
   const error = new Error(`Not Found - ${req.originalUrl}`);
   error.status = 404;
   next(error);
 });
 
-// Global error handler
 app.use((err, req, res, next) => {
-  // Multer errors
   if (err instanceof multer.MulterError) {
     if (err.code === 'FILE_TOO_LARGE') {
       return res.status(413).json({ error: 'File too large' });
@@ -122,7 +115,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ---- Start Server ----
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT} (${process.env.NODE_ENV || 'development'} mode)`);
   console.log(`📁 Uploads directory: ${UPLOAD_DIR}`);
