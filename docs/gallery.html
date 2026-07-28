@@ -61,7 +61,9 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/main.js"></script>
   <script>
-    const API_BASE = 'http://localhost:5000/api';
+    // ✅ UPDATED: Use live backend URL
+    const API_BASE = 'https://ugwiza-studio-backend.onrender.com/api';
+
     async function loadGallery() {
       const grid = document.getElementById('galleryGrid');
       try {
@@ -75,10 +77,11 @@
         let html = '';
         items.forEach(item => {
           const isVideo = item.type === 'video';
-          const mediaUrl = `http://localhost:5000${item.file_path}`;
+          // Build full URL for the media file
+          const fileUrl = `${API_BASE.replace('/api', '')}${item.file_path}`;
           const media = isVideo
-            ? `<video src="${mediaUrl}" controls muted style="width:100%; height:250px; object-fit:cover; border-radius:10px;"></video>`
-            : `<img src="${mediaUrl}" alt="${item.title || 'Gallery'}" style="width:100%; height:250px; object-fit:cover; border-radius:10px;">`;
+            ? `<video src="${fileUrl}" controls muted style="width:100%; height:250px; object-fit:cover; border-radius:10px;"></video>`
+            : `<img src="${fileUrl}" alt="${item.title || 'Gallery'}" style="width:100%; height:250px; object-fit:cover; border-radius:10px;">`;
           html += `
             <div class="col-md-4 col-sm-6 gallery-item">
               ${media}
