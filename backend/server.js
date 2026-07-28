@@ -3,22 +3,38 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+const helmet = require('helmet'); // optional – install if needed
 const contactRoutes = require('./routes/contactRoutes');
 const galleryRoutes = require('./routes/galleryRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 dotenv.config();
 const app = express();
 
-// ---- File upload configuration ----
+// ---- Configuration ----
+const PORT = process.env.PORT || 5000;
+const UPLOAD_DIR = path.resolve(__dirname, '../docs/assets/uploads');
+
+// Ensure upload directory exists
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  console.log(`Created upload directory: ${UPLOAD_DIR}`);
+}
+
+// ---- Multer file upload configuration ----
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    // ✅ Changed from 'frontend' to 'docs'
-    const uploadPath = path.join(__dirname, '../docs/assets/uploads');
-    cb(null, uploadPath);
+  destination: (req, file, cb) => {
+    cb(null, UPLOAD_DIR);
   },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    // Get the original file name without extension
+    const originalName = file.originalname.split('.').slice(0, -1).join('.');
+    const extension = file.originalname.split('.').pop();
+    // Sanitize the name to avoid special characters and path traversal
+    const cleanName = originalName.replace(/[^a-zA-Z0-9\-_ ]/g, '_');
+    cb(null, uniqueSuffix + '-' + cleanName + '.' + extension);
   }
 });
 
@@ -30,28 +46,89 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({ storage, fileFilter });
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+  }
+});
 
 // ---- Middleware ----
-app.use(cors());
-app.use(express.json());
-// ✅ Changed static file serving path to 'docs'
-app.use('/uploads', express.static(path.join(__dirname, '../docs/assets/uploads')));
+// Security headers (optional – remove if helmet not installed)
+app.use(helmet());
+
+// CORS – configure with env variable for production
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN || '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+app.use(cors(corsOptions));
+
+// JSON body parser with size limit
+app.use(express.json({ limit: '50mb' }));
+
+// Serve static files from uploads
+app.use('/uploads', express.static(UPLOAD_DIR));
 
 // ---- Routes ----
 app.use('/api/contact', contactRoutes);
 app.use('/api/gallery', galleryRoutes);
-
-// ---- Admin Routes ----
-const adminRoutes = require('./routes/adminRoutes');
 app.use('/api/admin', adminRoutes(upload));
 
-// ---- Health check ----
+// Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date() });
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
 });
 
-const PORT = process.env.PORT || 5000;
+// Welcome route
+app.get('/', (req, res) => {
+  res.json({
+    message: 'API server is running',
+    endpoints: {
+      health: '/api/health',
+      contact: '/api/contact',
+      gallery: '/api/gallery',
+      admin: '/api/admin',
+    },
+  });
+});
+
+// ---- Error Handling ----
+// 404 handler
+app.use((req, res, next) => {
+  const error = new Error(`Not Found - ${req.originalUrl}`);
+  error.status = 404;
+  next(error);
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  // Multer-specific errors
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'FILE_TOO_LARGE') {
+      return res.status(413).json({ error: 'File too large' });
+    }
+    return res.status(400).json({ error: err.message });
+  }
+
+  // Custom errors
+  const status = err.status || 500;
+  const message = err.message || 'Internal Server Error';
+  console.error(`[${new Date().toISOString()}] ${status} - ${message}`, err.stack);
+  res.status(status).json({
+    error: message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+  });
+});
+
+// ---- Start Server ----
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT} (${process.env.NODE_ENV || 'development'} mode)`);
+  console.log(`📁 Uploads directory: ${UPLOAD_DIR}`);
 });
