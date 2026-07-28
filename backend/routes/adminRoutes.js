@@ -15,7 +15,8 @@ module.exports = (upload) => {
 
   // Messages management
   router.get('/messages', adminController.authenticate, adminController.getMessages);
-  router.delete('/messages/:id', adminController.authenticate, adminController.deleteMessage); // 👈 DELETE single message
+  router.delete('/messages/:id', adminController.authenticate, adminController.deleteMessage);
+  router.delete('/messages/clear', adminController.authenticate, adminController.clearMessages); // 👈 Clear all
 
   return router;
 };

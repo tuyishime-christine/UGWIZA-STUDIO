@@ -98,3 +98,13 @@ exports.deleteMessage = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete message' });
   }
 };
+
+exports.clearMessages = async (req, res) => {
+  try {
+    await db.query('DELETE FROM contacts');
+    res.json({ message: 'All messages cleared successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to clear messages' });
+  }
+};
