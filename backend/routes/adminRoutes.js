@@ -9,14 +9,13 @@ module.exports = (upload) => {
   // Upload file (protected)
   router.post('/upload', adminController.authenticate, upload.single('file'), adminController.uploadFile);
 
-  // Get all gallery items
+  // Gallery management
   router.get('/gallery', adminController.authenticate, adminController.getGallery);
-
-  // Delete gallery item
   router.delete('/gallery/:id', adminController.authenticate, adminController.deleteGalleryItem);
 
-  // 👇 NEW ROUTE: Get all contact messages
+  // Messages management
   router.get('/messages', adminController.authenticate, adminController.getMessages);
+  router.delete('/messages/:id', adminController.authenticate, adminController.deleteMessage); // 👈 DELETE single message
 
   return router;
 };

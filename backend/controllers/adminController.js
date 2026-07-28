@@ -77,7 +77,7 @@ exports.deleteGalleryItem = async (req, res) => {
   }
 };
 
-// ---- NEW: Get all contact messages ----
+// ---- MESSAGES ----
 exports.getMessages = async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM contacts ORDER BY created_at DESC');
@@ -85,5 +85,16 @@ exports.getMessages = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+};
+
+exports.deleteMessage = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.query('DELETE FROM contacts WHERE id = ?', [id]);
+    res.json({ message: 'Message deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete message' });
   }
 };
